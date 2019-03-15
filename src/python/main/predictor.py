@@ -37,9 +37,10 @@ def convert_hashID_to_browser_id(df):
     return df
 
 
-def prediction_stage(filename, lgb_path, target_label=1):
+def prediction_stage(filename, path, target_label=1):
     LOGGER.info('-------------------- Load Test Data. ----------------------------')
-    lgb_models = sorted(glob.glob(os.path.join(lgb_path, "*fold_[0-4].pkl")))
+    newest_model = sorted(os.listdir(directory), reverse=True)[0]       # find the newest model to predict
+    lgb_models = sorted(glob.glob(os.path.join(path, newest_model, "*fold_[0-4].pkl")))
 
     LOGGER.info('\nMake predictions...\n')
     models = [pickle.load(open(m_name, 'rb')) for m_name in lgb_models]
@@ -60,7 +61,7 @@ def prediction_stage(filename, lgb_path, target_label=1):
     lgb_result = np.array(lgb_result, dtype=np.float16)
 
     if lgb_result.shape[1] == 2:  # binary classification
-        with open(os.path.join(directory, OPTIMAL_THRESHOLD_FILENAME), 'r') as f:
+        with open(os.path.join(directory, newest_model, OPTIMAL_THRESHOLD_FILENAME), 'r') as f:
             optimal_threshold = float(f.read())
             final_result = np.array(lgb_result[:, 1] > optimal_threshold, dtype=np.int16)
     else:

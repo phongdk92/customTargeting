@@ -155,7 +155,7 @@ def train():
         final_result = np.argmax(lgb_cv_result, axis=1)
     LOGGER.info('\n *************** LightGBM VAL EVALUATION: *******************')
     LOGGER.info(classification_report(train_df[target_column], final_result))
-    LOGGER.info(classification_report(train_df[target_column], np.argmax(lgb_cv_result, axis=1)))
+    #LOGGER.info(classification_report(train_df[target_column], np.argmax(lgb_cv_result, axis=1)))
 
 
 def prediction_stage(df_path, lgb_path):
@@ -191,8 +191,8 @@ def prediction_stage(df_path, lgb_path):
     LOGGER.info('\n *************** LightGBM TEST EVALUATION: *******************')
     LOGGER.info(f"\n{classification_report(Y, final_result)}")
     LOGGER.info(f" AUC : {roc_auc_score(Y, final_result)} ")
-    LOGGER.info(f"\n{classification_report(Y, np.argmax(lgb_result, axis=1))}")
-    LOGGER.info(f" AUC : {roc_auc_score(Y, np.argmax(lgb_result, axis=1))} ")
+    # LOGGER.info(f"\n{classification_report(Y, np.argmax(lgb_result, axis=1))}")
+    # LOGGER.info(f" AUC : {roc_auc_score(Y, np.argmax(lgb_result, axis=1))} ")
 
 
 if __name__ == '__main__':
