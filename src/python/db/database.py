@@ -56,8 +56,8 @@ def export_to_csv(filename, output, columns):
 
 
 if __name__ == '__main__':
-    from_date = '2019-01-06'
-    end_date = '2019-01-21'
+    from_date = '2019-02-20'
+    end_date = '2019-03-11'
     PATH = 'external_data'
     filter_uid = os.path.join(os.getcwd(), PATH,  'facebook_id.csv')
     collect_user_hash_id('facebook_hash_id.csv.gz', from_date, end_date, filter_uid)
