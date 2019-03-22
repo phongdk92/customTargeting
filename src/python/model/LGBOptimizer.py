@@ -114,23 +114,22 @@ class LGBOptimizer(object):
         model.fit(x_train, y_train,
                   eval_set=[(x_valid, y_valid)],
                   verbose=1000,
-                  early_stopping_rounds=200)
+                  early_stopping_rounds=300)
         pickle.dump(model, open(os.path.join(lgb_path, f'{name}_fold_{fold}.pkl'), 'wb'))
         cv_val = model.predict_proba(x_valid)
         return cv_val
-
 
     def hyperparameter_space(self, param_space=None):
         space = dict(
             objective="binary",
             boosting_type="gbdt",
-            # metric="auc",
+            metric="auc",
             is_unbalance=True,
             boost_from_average=False,
             num_threads=self.n_jobs,
-            #learning_rate=Real(0.005, 0.01),
-            learning_rate=Categorical([0.005, 0.01]),
-            num_leaves=Categorical(range(8, 21, 4)),
+            learning_rate=Real(0.005, 0.01),
+            # learning_rate=Categorical([0.005, 0.01]),
+            num_leaves=Integer(8, 20),
             max_depth=-1,
             feature_fraction=0.041,
             bagging_freq=5,
@@ -141,9 +140,9 @@ class LGBOptimizer(object):
 
         nclass = len(self.data[self.target_column].unique())
         if nclass > 2:
-            LOGGER.info("************Since the number classes > 2: so the objective function is 'multiclass' *************")
+            LOGGER.info("*********Since the number classes > 2: so the objective function is 'multiclass' *********")
             space['objective'] = 'multiclass'
-        LOGGER.info(f"------------------------ Objective : {space['objective']}--------------")
+        LOGGER.info("------------------------ Objective : {}--------------".format(space['objective']))
 
         if param_space:
             return param_space
@@ -153,7 +152,7 @@ class LGBOptimizer(object):
     def extra_setup(self, extra_setup=None):
 
         extra_params = dict(
-            early_stopping_rounds=200)
+            early_stopping_rounds=300)
         # feature_name=self.colnames)
         # categorical_feature=self.categorical_columns)
 

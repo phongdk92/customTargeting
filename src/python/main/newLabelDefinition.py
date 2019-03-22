@@ -8,12 +8,10 @@ Created on Mar 12 17:46 2019
 
 import numpy as np
 import pandas as pd
-
+import sys
 
 CURRENT_YEAR = 2019
 BASE_DATE = pd.Timestamp('2019-03-15')       # compute age at the moment users access the Internet, not fix like this
-LOW_AGE = 30
-HIGH_AGE = 40
 AGE_GROUP = [17, 29, 40, 54]  # 0-17, 18-29, 30-40, 40-54, 55+
 
 
@@ -46,6 +44,7 @@ def get_target(x):
 #     df = df[['user_id', 'age_group']]
 #     return df
 
+
 def load_data():
     df = pd.read_csv(fb_hash_id_filename, sep=' ', header=None, names=['user_id', 'gender', 'year'],
                      dtype={'user_id': str})
@@ -55,15 +54,18 @@ def load_data():
         df['year'] = pd.to_datetime(df['year'], format='%Y-%m-%d', errors='coerce')
         df = df[df['year'].notnull()]  # remove all rows that have incorrect year
         df['age'] = (BASE_DATE - df['year']).astype('<m8[Y]')
-    df['age_group'] = df['age'].apply(lambda x: age_to_age_group(x))
+    df['age_group'] = df['age'].apply(lambda x: get_target(x))
     df = df[['user_id', 'age_group']]
     return df
 
 
 if __name__ == '__main__':
+    LOW_AGE = int(sys.argv[1])
+    HIGH_AGE = int(sys.argv[2])
+    print("Low age \t {} ------------ High age \t {}".format(LOW_AGE, HIGH_AGE))
     fb_hash_id_filename = 'external_data/facebook_hash_id.csv'
-    # fb_filename = 'external_data/facebook.csv'
     df = load_data()
-    df.to_csv(f'external_data/new_age_label_{LOW_AGE}_{HIGH_AGE}_multiclass.csv', index=False)
+    df.to_csv(f'external_data/new_age_label_{LOW_AGE}_{HIGH_AGE}.csv', index=False)
+    print(df['age_group'].value_counts(normalize=True, sort=False))
     print(df.shape)
     print(df.head(20))

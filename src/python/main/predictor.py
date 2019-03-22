@@ -26,14 +26,16 @@ from redisConnection import connectRedis, get_browser_id
 warnings.filterwarnings("ignore")
 
 OPTIMAL_THRESHOLD_FILENAME = 'Optimal_threshold.txt'
+BALANCE_THRESHOLD = 0.5
+GAP_INVENTORY = 0.05
 
 
 def convert_hashID_to_browser_id(df):
-    LOGGER.info(f"Shape before convert HashId {df.shape}")
+    LOGGER.info("Shape before convert HashId {}".format(df.shape))
     r = connectRedis()
     df["browser_id"] = df["user_id"].apply(lambda x: get_browser_id(r, x))
     df.dropna(subset=["browser_id"], inplace=True)
-    LOGGER.info(f"Shape before convert HashId {df.shape}")
+    LOGGER.info("Shape before convert HashId {}".format(df.shape))
     return df
 
 
@@ -62,20 +64,31 @@ def prediction_stage(filename, path, target_label=1):
 
     if lgb_result.shape[1] == 2:  # binary classification
         with open(os.path.join(directory, newest_model, OPTIMAL_THRESHOLD_FILENAME), 'r') as f:
-            optimal_threshold = float(f.read())
+            optimal_threshold = float(f.read()) if is_best_threshold else BALANCE_THRESHOLD
+            LOGGER.info("------------------Using threshold --------- : {}".format(optimal_threshold))
             final_result = np.array(lgb_result[:, 1] > optimal_threshold, dtype=np.int16)
     else:
         final_result = np.argmax(lgb_result, axis=1)
 
-    # columns = ['age_{}'.format(x) for x in range(lgb_result.shape[1])]
-    # columns = ['target']
-    # df = pd.DataFrame(data=final_result, index=list_userid, columns=columns)
-    # df.index.name = 'user_id'
     df = pd.DataFrame({'user_id': list_userid, 'target': final_result})
     df = df[df['target'] == target_label]
     df = convert_hashID_to_browser_id(df)
+    df['category_id'] = cate_id
     LOGGER.info(df.head())
-    df['browser_id'].to_csv(output_filename, compression='gzip', index=False)
+    df[['browser_id', 'category_id']].to_csv(output_filename, compression='gzip', index=False, header=None, sep=' ')
+    LOGGER.info(output_filename)
+
+    if cate_id2:  # if wanna more inventory, using argmax instead of best_threshold
+        #final_result = np.argmax(lgb_result, axis=1)
+        final_result = np.array(lgb_result[:, 1] > optimal_threshold - GAP_INVENTORY, dtype=np.int16)
+        df = pd.DataFrame({'user_id': list_userid, 'target': final_result})
+        df = df[df['target'] == target_label]
+        df = convert_hashID_to_browser_id(df)
+        df['category_id'] = cate_id2
+        LOGGER.info(df.head())
+        df[['browser_id', 'category_id']].to_csv(output_filename.replace("_75", "_50"), compression='gzip',
+                                                 index=False, header=None, sep=' ')
+        LOGGER.info(output_filename)
 
 
 if __name__ == '__main__':
@@ -86,11 +99,19 @@ if __name__ == '__main__':
     ap.add_argument("-cs", "--chunk_size", required=False, nargs='?',
                     help="chunk size for reading and processing a large file", type=int, default=-1)
     ap.add_argument("-l", "--log_file", required=False, help="path to log file")
+    ap.add_argument("-bt", "--best_threshold", required=False, help="path to log file", type=bool, default=True)
+    ap.add_argument("-cid", "--cate_id", required=True, help="Category ID", type=int)
+    ap.add_argument("-cid2", "--cate_id2", required=False,
+                    help="Category ID 2 (if wanna more inventory)", type=int)
 
     args = vars(ap.parse_args())
     directory = args['model_directory']
     test_filename = args['test']
     chunk_size = args['chunk_size']
+    is_best_threshold = args['best_threshold']
+    cate_id = args['cate_id']
+    cate_id2 = args['cate_id2']
+
     output_filename = args['output'] if args['output'].endswith('.gz') else '{}.csv.gz'.format(args['output'])
 
     if args['log_file'] is not None:

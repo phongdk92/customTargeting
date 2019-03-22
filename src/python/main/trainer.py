@@ -136,7 +136,7 @@ def train():
     train_df['age_group'] = [change_label(new_label_df, x) for x in list(train_df.index)]
     train_df.dropna(inplace=True)
     # train_df = normalize_topic_distribution(train_df)
-    LOGGER.info(f"-------------TRAINING SET SHAPE : {train_df.shape}-------------------")
+    LOGGER.info("-------------TRAINING SET SHAPE : {} -------------------".format(train_df.shape))
     train_df.drop(columns=['gender'], inplace=True)
     target_column = 'age_group'
     LOGGER.info('---------------------------Optimize parameter for LGBMs------------------------------')
@@ -155,11 +155,11 @@ def train():
         final_result = np.argmax(lgb_cv_result, axis=1)
     LOGGER.info('\n *************** LightGBM VAL EVALUATION: *******************')
     LOGGER.info(classification_report(train_df[target_column], final_result))
-    #LOGGER.info(classification_report(train_df[target_column], np.argmax(lgb_cv_result, axis=1)))
+    LOGGER.info(classification_report(train_df[target_column], np.argmax(lgb_cv_result, axis=1)))
 
 
 def prediction_stage(df_path, lgb_path):
-    LOGGER.info('Load Test Data.')
+    LOGGER.info('---------------Load Test Data.-----------------------------------')
     df = load_data(df_path)
     new_label_df = load_new_label(new_label_filename)
     df['age_group'] = [change_label(new_label_df, x) for x in list(df.index)]
@@ -189,8 +189,8 @@ def prediction_stage(df_path, lgb_path):
     else:
         final_result = np.argmax(lgb_result, axis=1)
     LOGGER.info('\n *************** LightGBM TEST EVALUATION: *******************')
-    LOGGER.info(f"\n{classification_report(Y, final_result)}")
-    LOGGER.info(f" AUC : {roc_auc_score(Y, final_result)} ")
+    LOGGER.info(classification_report(Y, final_result))
+    LOGGER.info(" AUC : {} ".format(roc_auc_score(Y, final_result)))
     # LOGGER.info(f"\n{classification_report(Y, np.argmax(lgb_result, axis=1))}")
     # LOGGER.info(f" AUC : {roc_auc_score(Y, np.argmax(lgb_result, axis=1))} ")
 
@@ -200,6 +200,8 @@ if __name__ == '__main__':
     ap.add_argument("-f", "--train", required=True, help="path to training file")
     ap.add_argument("-q", "--test", required=True, help="path to testing file")
     ap.add_argument("-d", "--directory", required=True, help="path to model directory")
+    ap.add_argument("-nl", "--new_label", required=True, help="path to new label file")
+
     '''
     Parameter (-op, -hp), -t should go together
     optimize --> output to hp --> train
@@ -216,15 +218,15 @@ if __name__ == '__main__':
     args = vars(ap.parse_args())
     train_filename = args['train']
     test_filename = args['test']
-    hyper_params_path = args['hyperparams']
     directory = args['directory']
+    new_label_filename = args['new_label']  # "external_data/new_age_label_30_40.csv"
+
+    hyper_params_path = args['hyperparams']
     is_train = args['is_train']
     is_optimize = args['is_optimize']
 
     if not os.path.exists(directory):
         os.makedirs(directory)
-
-    new_label_filename = "external_data/new_age_label_30_40.csv"
 
     if args['log_file'] is not None:
         log_filename = args['log_file']
