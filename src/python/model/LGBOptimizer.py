@@ -92,10 +92,6 @@ class LGBOptimizer(object):
         best_params = self.get_best_params()
         LOGGER.info(best_params)
         nclass = len(Y.unique())
-        # if nclass > 2:
-        #     best_params['objective'] = 'multiclass'
-        #     best_params['metric'] = 'multi_logloss'
-        #     best_params['num_class'] = nclass
         lgb_cv_result = np.zeros((X.shape[0], nclass))
         splits = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 

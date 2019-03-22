@@ -16,8 +16,6 @@ from datetime import datetime, timedelta
 CONNECT_TO_AGGREGATOR = "clickhouse-client --progress --user=stats_webui " \
                         "--password=`cat /home/phongdk/.clickhouse_pw` --host=aggregator3v.dev.itim.vn --query "
 
-CONNECT_TO_BROWSER_STAT = "clickhouse-client --user=default --host=browser-stat1v.dev.itim.vn --query "
-
 
 def get_data_from_server(connect_to_server, query, external=""):
     command = connect_to_server + "\"{}\" ".format(query) + external
