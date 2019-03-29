@@ -28,6 +28,7 @@ warnings.filterwarnings("ignore")
 OPTIMAL_THRESHOLD_FILENAME = 'Optimal_threshold.txt'
 BALANCE_THRESHOLD = 0.5
 GAP_INVENTORY = 0.05
+NUM_THREADS = 16
 
 
 def convert_hashID_to_browser_id(df):
@@ -55,7 +56,7 @@ def prediction_stage(filename, path, target_label=1):
         if "gender" in chunk.columns:
             chunk.drop(columns=['gender', 'age_group'], inplace=True)
 
-        chunk_result = [model.predict_proba(chunk) for model in models]  # prediction for each chunk
+        chunk_result = [model.predict_proba(chunk, num_threads=NUM_THREADS) for model in models]  # prediction for each chunk
         chunk_result = np.array(chunk_result).mean(axis=0)
 
         lgb_result.extend(chunk_result)

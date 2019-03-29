@@ -10,12 +10,14 @@ import numpy as np
 import pandas as pd
 import argparse
 import glob
-
+import os
 
 def load_data(filename):
+    print(filename)
     try:
-        df = pd.read_csv(filename, sep=' ', header=None, names=['browser_id', 'category_id'], 
+        df = pd.read_csv(filename, sep=' ', header=None, names=['browser_id', 'category_id'],
                          dtype={'browser_id': str, 'category_id': str})
+        print(df.shape)
         return df
     except:
         print('--------Load data fail ----- {}'.format(filename))
@@ -31,9 +33,12 @@ if __name__ == '__main__':
 
     directory = args['directory']
     output = args['output']
-    dfs = [load_data(filename) for filename in sorted(glob.glob(directory + "*.gz"))]
-    df = pd.concat(dfs, axis=0)
-    # df['category_id'] = df['category_id'].astype(np.int16)
-    print("Data shape : {}".format(df.shape))
-    df.to_csv(output, sep=' ', compression='gzip', index=False, header=None)
-
+    dfs = [load_data(filename) for filename in sorted(glob.glob(os.path.join(directory, "*.gz")))]
+    try:
+	    df = pd.concat(dfs, axis=0)
+	    # df['category_id'] = df['category_id'].astype(np.int16)
+	    print("Data shape : {}".format(df.shape))
+	    assert df.shape[1] == 2
+	    df.to_csv(output, sep=' ', compression='gzip', index=False, header=None)
+    except:
+        print('ERROR : ------------ Cannot concate data frames')
