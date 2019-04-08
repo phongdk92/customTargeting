@@ -26,8 +26,8 @@ def age_to_age_group(age):
 
 def get_target(x):
     if x < LOW_AGE or x > HIGH_AGE:
-        return REVERSE
-    return 1 - REVERSE
+        return 0
+    return 1
 
 # def load_data():
 #     fb_df = pd.read_csv(fb_filename, sep=' ', header=None, names=['raw_uid', 'gender', 'year'])
@@ -64,26 +64,28 @@ def load_data():
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
-    ap.add_argument("-low", "--low", required=True, help="Low age", type=int)
+    ap.add_argument("-low", "--low", required=False, help="Low age", type=int, default=0)
     ap.add_argument("-high", "--high", required=False, help="High age", type=int, default=np.inf)
-    ap.add_argument("-r", "--reverse", required=False, help="Reverse or not", type=int, default=0)
-    ap.add_argument("-o", "--output", required=False, help="Output file", default=None)
-    args = vars(ap.parse_args())
-
+    ap.add_argument("-o", "--output", required=True, help="Output file", default=None)
+    # ap.add_argument("-r", "--reverse", required=False, help="Reverse or not", type=int, default=0)
     # if forcusing on 22- (X-) we have to inverse label (set Reverse=1), <22: 1, 22+: 0 instead of <22:0, 22+: 1
+
+    # if focusing on 22-, set low=0, high=22
+    # if focusing on 22+, set low=22, high=np.inf
     # This label is related to optimization F1-score on label 1
 
+    args = vars(ap.parse_args())
     LOW_AGE = args['low']   # int(sys.argv[1])
     HIGH_AGE = args['high']
-    REVERSE = args['reverse']
+    # REVERSE = args['reverse']
     output = args['output']
 
     print("Low age \t {} ------------ High age \t {}".format(LOW_AGE, HIGH_AGE))
     fb_hash_id_filename = 'external_data/facebook_hash_id.csv'
     df = load_data()
-    if output is None:
-        output = f'external_data/new_age_label_{LOW_AGE}+.csv' if HIGH_AGE == np.inf else \
-            f'external_data/new_age_label_{LOW_AGE}_{HIGH_AGE}.csv'
+    # if output is None:
+    #     output = f'external_data/new_age_label_{LOW_AGE}+.csv' if HIGH_AGE == np.inf else \
+    #         f'external_data/new_age_label_{LOW_AGE}_{HIGH_AGE}.csv'
     df.to_csv(output, index=False)
     print(df['age_group'].value_counts(normalize=True, sort=False))
     print(df.shape)
