@@ -119,7 +119,7 @@ class LGBOptimizer(object):
         space = dict(
             objective="binary",
             boosting_type="gbdt",
-            metric="auc",
+            metric="binary_logloss",
             is_unbalance=True,
             boost_from_average=False,
             num_threads=self.n_jobs,
@@ -138,6 +138,9 @@ class LGBOptimizer(object):
         if nclass > 2:
             LOGGER.info("*********Since the number classes > 2: so the objective function is 'multiclass' *********")
             space['objective'] = 'multiclass'
+            space['metric'] = 'multi_logloss'
+            space['num_class'] = nclass
+            
         LOGGER.info("------------------------ Objective : {}--------------".format(space['objective']))
 
         if param_space:

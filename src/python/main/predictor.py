@@ -28,7 +28,7 @@ warnings.filterwarnings("ignore")
 OPTIMAL_THRESHOLD_FILENAME = 'Optimal_threshold.txt'
 BALANCE_THRESHOLD = 0.5
 GAP_INVENTORY = 0.05
-NUM_THREADS = 16
+NUM_THREADS = 24
 
 
 def convert_hashID_to_browser_id(df):

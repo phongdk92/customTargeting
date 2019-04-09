@@ -15,7 +15,8 @@ import pickle
 import logging
 from datetime import datetime
 from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import classification_report, roc_auc_score, f1_score
+from sklearn.metrics import classification_report, roc_auc_score, f1_score, precision_score, \
+    confusion_matrix, recall_score
 
 
 import sys
@@ -26,7 +27,9 @@ from LGBOptimizer import LGBOptimizer
 import warnings
 warnings.filterwarnings("ignore")
 
+metrics_dict = dict(f1_score=f1_score, precision=precision_score, recall=recall_score)
 OPTIMAL_THRESHOLD_FILENAME = 'Optimal_threshold.txt'
+N_JOBS = 24
 
 
 def load_new_label(filename):
@@ -114,16 +117,16 @@ def change_label(df, x):
 #     LOGGER.info('\n *************** LightGBM VAL EVALUATION: *******************')
 #     LOGGER.info(classification_report(Y, lgb_cv_result))
 
-def get_optimal_binary_threshold(y, y_preds):
+def get_optimal_binary_threshold(y, y_preds, metrics=f1_score):
     LOGGER.info("-------------Finding optimal threshold ------------------------")
     best_score = 0
     best_threshold = 0
-    for threshold in np.arange(0.2, 0.601, 0.01):
-        score = f1_score(y, np.array(y_preds) > threshold)
+    for threshold in np.arange(0.2, 0.721, 0.01):
+        score = metrics(y, np.array(y_preds) > threshold)
         if best_score < score:
             best_score = score
             best_threshold = threshold
-    LOGGER.info('best threshold is {:.4f} with F1 score: {:.4f}'.format(best_score, best_threshold))
+    LOGGER.info('best threshold is \t {:.4f} with {}: \t{:.4f}'.format(best_threshold, metrics.__name__, best_score ))
     return best_threshold
 
 
@@ -140,14 +143,15 @@ def train():
     train_df.drop(columns=['gender'], inplace=True)
     target_column = 'age_group'
     LOGGER.info('---------------------------Optimize parameter for LGBMs------------------------------')
-    lgb_optimizer = LGBOptimizer(train_df, target_column=target_column, out_dir=hyper_params_path, n_jobs=32)
+    lgb_optimizer = LGBOptimizer(train_df, target_column=target_column, out_dir=hyper_params_path, n_jobs=N_JOBS)
     if is_optimize:
         lgb_optimizer.optimize(metrics="roc_auc_score", n_splits=5, cv_type=StratifiedKFold, maxevals=200,
                                do_predict_proba=None)
 
     lgb_cv_result = lgb_optimizer.fit_data(path_save_model=directory, name='lgb')
     if len(train_df[target_column].unique()) == 2:  # binary classification
-        optimal_threshold = get_optimal_binary_threshold(train_df[target_column], lgb_cv_result[:,1])
+        optimal_threshold = get_optimal_binary_threshold(train_df[target_column], lgb_cv_result[:, 1],
+                                                         metrics=metric_optimization)
         final_result = np.array(lgb_cv_result[:, 1] > optimal_threshold, dtype=np.int16)
         with open(os.path.join(directory, OPTIMAL_THRESHOLD_FILENAME), 'w') as f:
             f.write(str(optimal_threshold))
@@ -191,6 +195,7 @@ def prediction_stage(df_path, lgb_path):
     LOGGER.info('\n *************** LightGBM TEST EVALUATION: *******************')
     LOGGER.info(classification_report(Y, final_result))
     LOGGER.info(" AUC : {} ".format(roc_auc_score(Y, final_result)))
+    LOGGER.info(" Confusion matrix : \n {}".format(confusion_matrix(Y, final_result)))
     # LOGGER.info(f"\n{classification_report(Y, np.argmax(lgb_result, axis=1))}")
     # LOGGER.info(f" AUC : {roc_auc_score(Y, np.argmax(lgb_result, axis=1))} ")
 
@@ -213,6 +218,7 @@ if __name__ == '__main__':
                     default=False)
     ap.add_argument("-op", "--is_optimize", required=False, nargs='?', help="whether optimize parameters or not",
                     const=True, type=bool, default=False)
+    ap.add_argument("-me", "--metric", required=False, help="metric to optimize threshold", type=str, default="f1_score")
     ap.add_argument("-l", "--log_file", required=False, help="path to log file")
 
     args = vars(ap.parse_args())
@@ -224,6 +230,7 @@ if __name__ == '__main__':
     hyper_params_path = args['hyperparams']
     is_train = args['is_train']
     is_optimize = args['is_optimize']
+    metric_optimization = metrics_dict[args['metric']]
 
     if not os.path.exists(directory):
         os.makedirs(directory)
