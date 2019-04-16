@@ -12,6 +12,7 @@ import argparse
 import glob
 import os
 
+
 def load_data(filename):
     print(filename)
     try:
@@ -35,10 +36,11 @@ if __name__ == '__main__':
     output = args['output']
     dfs = [load_data(filename) for filename in sorted(glob.glob(os.path.join(directory, "*.gz")))]
     try:
-	    df = pd.concat(dfs, axis=0)
-	    # df['category_id'] = df['category_id'].astype(np.int16)
-	    print("Data shape : {}".format(df.shape))
-	    assert df.shape[1] == 2
-	    df.to_csv(output, sep=' ', compression='gzip', index=False, header=None)
-    except:
+        df = pd.concat(dfs, axis=0)
+        # df['category_id'] = df['category_id'].astype(np.int16)
+        print("Data shape : {}".format(df.shape))
+        assert df.shape[1] == 2
+        df.to_csv(output, sep=' ', compression='gzip', index=False, header=None)
+    except ValueError as e:
         print('ERROR : ------------ Cannot concate data frames')
+        raise e

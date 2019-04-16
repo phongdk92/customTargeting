@@ -126,7 +126,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, filename=log_filename)
     LOGGER = logging.getLogger("main")
 
-    LOGGER.info(args)
     LOGGER.info('----' * 20 + "{}".format(datetime.today()))
+    LOGGER.info(args)
 
     prediction_stage(test_filename, directory)
