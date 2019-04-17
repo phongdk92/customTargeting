@@ -24,7 +24,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class LGBOptimizer(object):
-    def __init__(self, df, target_column='target', out_dir='HyperparameterHunterAssets', n_jobs=-1):
+    def __init__(self, df, target_column='target', out_dir='HyperparameterHunterAssets', n_jobs=-1,
+                 open_file=open):
         """
         Hyper Parameter optimization
         Comments: Hyperparameter_hunter (hereafter HH) is a fantastic package
@@ -46,6 +47,7 @@ class LGBOptimizer(object):
         self.n_jobs = n_jobs
         self.categorical_columns = None
         self.results_path = str(out_dir)
+        self.OPEN_METHOD = open_file
 
     def optimize(self, metrics='f1_score', n_splits=5, cv_type=StratifiedKFold, maxevals=200, do_predict_proba=None):
         params = self.hyperparameter_space()
@@ -105,13 +107,13 @@ class LGBOptimizer(object):
 
     def __train_lgb(self, best_params, fold, x_train, y_train, x_valid, y_valid, lgb_path, name):
         LOGGER.info(f'--------------- Training LGBM with FOLD ---------------------: {fold}')
-        # model = pickle.load(open(os.path.join(lgb_path, f'{name}_fold_{fold}.pkl'), 'rb'))
+        # model = pickle.load(self.OPEN_METHOD(os.path.join(lgb_path, f'{name}_fold_{fold}.pkl'), 'rb'))
         model = lgb.LGBMClassifier(**best_params)
         model.fit(x_train, y_train,
                   eval_set=[(x_valid, y_valid)],
                   verbose=1000,
                   early_stopping_rounds=300)
-        pickle.dump(model, open(os.path.join(lgb_path, f'{name}_fold_{fold}.pkl'), 'wb'))
+        pickle.dump(model, self.OPEN_METHOD(os.path.join(lgb_path, f'{name}_fold_{fold}.pkl'), 'wb'))
         cv_val = model.predict_proba(x_valid)
         return cv_val
 
