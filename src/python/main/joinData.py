@@ -25,15 +25,7 @@ def load_data(filename):
         return []
 
 
-if __name__ == '__main__':
-    ap = argparse.ArgumentParser()
-    ap.add_argument("-d", "--directory", required=True, help="path to customTargeting files")
-    ap.add_argument("-o", "--output", required=True, help="output file")
-
-    args = vars(ap.parse_args())
-
-    directory = args['directory']
-    output = args['output']
+def join_and_save(directory, output):
     dfs = [load_data(filename) for filename in sorted(glob.glob(os.path.join(directory, "*.gz")))]
     try:
         df = pd.concat(dfs, axis=0)
@@ -44,3 +36,16 @@ if __name__ == '__main__':
     except ValueError as e:
         print('ERROR : ------------ Cannot concate data frames')
         raise e
+
+
+if __name__ == '__main__':
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-d", "--directory", required=True, help="path to customTargeting files")
+    ap.add_argument("-o", "--output", required=True, help="output file")
+
+    args = vars(ap.parse_args())
+
+    directory = args['directory']
+    output = args['output']
+
+    join_and_save(directory, output)

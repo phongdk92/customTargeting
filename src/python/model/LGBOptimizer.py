@@ -18,6 +18,7 @@ from hyperparameter_hunter import optimization as opt
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import f1_score, roc_auc_score
 import warnings
+
 warnings.filterwarnings("ignore")
 
 LOGGER = logging.getLogger(__name__)
@@ -77,14 +78,18 @@ class LGBOptimizer(object):
         LOGGER.info(optimizer.best_experiment)
 
     def get_best_params(self, best_experiment_id=None):
-        LOGGER.info('------------------Get best parameters-------------------')
-        leaderboards = os.path.join(self.results_path, 'HyperparameterHunterAssets/Leaderboards/GlobalLeaderboard.csv')
-        best_experiment_id = pd.read_csv(leaderboards, nrows=2, usecols=['experiment_id'],
-                                         dtype={'experiment_id': str})['experiment_id'].values[0]
-        best_experiment = os.path.join(self.results_path, 'HyperparameterHunterAssets/Experiments/Descriptions/',
-                                       '{}.json'.format(best_experiment_id))
-        with open(best_experiment) as best:
-            best = json.loads(best.read())['hyperparameters']['model_init_params']
+        try:
+            LOGGER.info('------------------GET BEST PARAMETERS -------------------')
+            leaderboards = os.path.join(self.results_path, 'HyperparameterHunterAssets/Leaderboards/GlobalLeaderboard.csv')
+            best_experiment_id = pd.read_csv(leaderboards, nrows=2, usecols=['experiment_id'],
+                                             dtype={'experiment_id': str})['experiment_id'].values[0]
+            best_experiment = os.path.join(self.results_path, 'HyperparameterHunterAssets/Experiments/Descriptions/',
+                                           '{}.json'.format(best_experiment_id))
+            with open(best_experiment) as best:
+                best = json.loads(best.read())['hyperparameters']['model_init_params']
+        except:
+            print('----------------CANNOT FIND BEST PARAMETERS,  LOAD DEFAULT PARAMETERS ----------------------')
+            best = self.get_best_params()
         return best
 
     def fit_data(self, path_save_model, name):
@@ -142,7 +147,7 @@ class LGBOptimizer(object):
             space['objective'] = 'multiclass'
             space['metric'] = 'multi_logloss'
             space['num_class'] = nclass
-            
+
         LOGGER.info("------------------------ Objective : {}--------------".format(space['objective']))
 
         if param_space:
@@ -161,3 +166,27 @@ class LGBOptimizer(object):
             return extra_setup
         else:
             return extra_params
+
+    def get_default_param(self):
+        default_params = dict(objective="binary",
+                              boosting_type="gbdt",
+                              metric="binary_logloss",
+                              is_unbalance=True,
+                              boost_from_average=False,
+                              num_threads=self.n_jobs,
+                              learning_rate=0.005,
+                              num_leaves=8,
+                              max_depth=-1,
+                              feature_fraction=0.041,
+                              bagging_freq=5,
+                              bagging_fraction=0.331,
+                              min_data_in_leaf=42,
+                              min_sum_hessian_in_leaf=10.0,
+                              num_iterations=200000)
+        nclass = len(self.data[self.target_column].unique())
+        if nclass > 2:
+            LOGGER.info("*********Since the number classes > 2: so the objective function is 'multiclass' *********")
+            default_params['objective'] = 'multiclass'
+            default_params['metric'] = 'multi_logloss'
+            default_params['num_class'] = nclass
+        return default_params

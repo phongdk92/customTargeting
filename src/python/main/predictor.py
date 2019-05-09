@@ -28,7 +28,7 @@ warnings.filterwarnings("ignore")
 OPTIMAL_THRESHOLD_FILENAME = 'Optimal_threshold.txt'
 BALANCE_THRESHOLD = 0.5
 GAP_INVENTORY = 0.05
-NUM_THREADS = 24
+NUM_THREADS = 32
 
 
 def convert_hashID_to_browser_id(df):
@@ -76,20 +76,17 @@ def prediction_stage(filename, path, target_label=1):
     df = convert_hashID_to_browser_id(df)
     df['category_id'] = cate_id
     LOGGER.info(df.head())
+
+    if cate_id2:
+        final_result = np.array(lgb_result[:, 1] > optimal_threshold - GAP_INVENTORY, dtype=np.int16)
+        df2 = pd.DataFrame({'user_id': list_userid, 'target': final_result})
+        df2 = df2[df2['target'] == target_label]
+        df2 = convert_hashID_to_browser_id(df2)
+        df2['category_id'] = cate_id2
+        df = pd.concat([df, df2])
+
     df[['browser_id', 'category_id']].to_csv(output_filename, compression='gzip', index=False, header=None, sep=' ')
     LOGGER.info(output_filename)
-
-    if cate_id2:  # if wanna more inventory, using argmax instead of best_threshold
-        #final_result = np.argmax(lgb_result, axis=1)
-        final_result = np.array(lgb_result[:, 1] > optimal_threshold - GAP_INVENTORY, dtype=np.int16)
-        df = pd.DataFrame({'user_id': list_userid, 'target': final_result})
-        df = df[df['target'] == target_label]
-        df = convert_hashID_to_browser_id(df)
-        df['category_id'] = cate_id2
-        LOGGER.info(df.head())
-        df[['browser_id', 'category_id']].to_csv(output_filename.replace("_75", "_50"), compression='gzip',
-                                                 index=False, header=None, sep=' ')
-        LOGGER.info(output_filename)
 
 
 if __name__ == '__main__':
@@ -98,7 +95,7 @@ if __name__ == '__main__':
     ap.add_argument("-q", "--test", required=True, help="path to testing file")
     ap.add_argument("-o", "--output", required=True, help="path to output file")
     ap.add_argument("-cs", "--chunk_size", required=False, nargs='?',
-                    help="chunk size for reading and processing a large file", type=int, default=-1)
+                    help="chunk size for reading and processing a large file", type=int, default=500000)
     ap.add_argument("-l", "--log_file", required=False, help="path to log file")
     ap.add_argument("-bt", "--best_threshold", required=False, help="path to log file", type=bool, default=True)
     ap.add_argument("-cid", "--cate_id", required=True, help="Category ID", type=int)
