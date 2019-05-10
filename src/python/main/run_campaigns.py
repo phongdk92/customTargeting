@@ -20,13 +20,18 @@ sys.path.append("src/python/utils")
 
 from utils import make_directories
 from joinData import join_and_save
-
+from newLabelDefinition import process_new_target
 
 # CURRENT_DATE = datetime.today().date() - timedelta(days=2)
+
 
 def process(config):
     command = "{}/scripts/customTargeting.sh".format(WORKING_DIRECTORY)
 
+    print('--------------Create new label----------')
+    process_new_target(int(config['low']), int(config['high']), NEW_LABEL_FILE)
+
+    print("------------- Main program-------------")
     subprocess.call([command, CURRENT_DATE.strftime("%Y-%m-%d"), WORKING_DIRECTORY, FEATURE_DIRECTORY,
                      CAMPAIGN_DIRECTORY, config['cateID'], HYPER_PARAMS_DIRECTORY, NEW_LABEL_FILE,
                      config['metric'], config['cateID2']])
@@ -69,13 +74,13 @@ if __name__ == '__main__':
     for jsonfile in list_jsons:
         config = json.load(open(jsonfile, 'r'))
         date_campaign = datetime.strptime(config['end_date'], "%Y-%m-%d").date()
-        if CURRENT_DATE < date_campaign:
+        if CURRENT_DATE <= date_campaign:
             if config['is_runnable']:  # if this campaign needs train/predict procedure
                 print("--------- Run campaign with json file : {}".format(jsonfile))
                 CAMPAIGN_DIRECTORY = os.path.join(DATA_CAMPAIGNS_OUT_DIRECTORY, config['name'])
                 make_directories(CAMPAIGN_DIRECTORY)
                 HYPER_PARAMS_DIRECTORY = CAMPAIGN_DIRECTORY
-                NEW_LABEL_FILE = os.path.join(CAMPAIGN_DIRECTORY, "label.csv")
+                NEW_LABEL_FILE = os.path.join(CAMPAIGN_DIRECTORY, "label.gz")
                 try:
                     process(config)
                 except Exception as err:
@@ -85,7 +90,8 @@ if __name__ == '__main__':
             filepath = os.path.join(TEMPORARY_CUSTOM_TARGET_DIR, "{}.gz".format(config['name']))
             if os.path.isfile(filepath):  # remove file if file is out-of-date
                 os.remove(filepath)
-                print(" ***** Remove file '{}' from temporary folder '{}'".format(config['name'], TEMPORARY_CUSTOM_TARGET_DIR))
+                print(" ***** Remove file '{}' from temporary folder '{}'".format(config['name'],
+                                                                                  TEMPORARY_CUSTOM_TARGET_DIR))
 
     # join data
     # subprocess.call(["python", "src/python/main/joinData.py", f"-d{TEMPORARY_CUSTOM_TARGET_DIR}",

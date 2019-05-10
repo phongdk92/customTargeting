@@ -34,7 +34,10 @@ N_JOBS = 24
 
 def load_new_label(filename):
     LOGGER.info('-------------------LOAD NEW LABEL ------------------')
-    df = pd.read_csv(filename, dtype={'user_id': str})
+    try:
+        df = pd.read_csv(filename, dtype={'user_id': str})
+    except:
+        df = pd.read_csv(filename, compression='gzip', dtype={'user_id': str})
     df.drop_duplicates(subset=['user_id'], inplace=True)
     df.set_index('user_id', inplace=True)
     return df
@@ -53,69 +56,6 @@ def change_label(df, x):
     except:
         return None
 
-
-# def train_lgb(fold, x_train, y_train, x_valid, y_valid, lgb_path):
-#     params = {"objective": "binary", "metric": 'auc', "max_depth": 8, "min_child_samples": 20,
-#               "reg_alpha": 1, "reg_lambda": 1, "num_leaves": 13, "learning_rate": 0.01, "subsample": 0.8,
-#               "colsample_bytree": 0.8, "verbosity": -1, 'is_unbalance': True, "num_threads": 32,
-#               "num_iterations": 200000}
-#     # 'num_class': len(np.unique(y_train))}
-#
-#     model = lgb.LGBMClassifier(**params)
-#     model.fit(x_train, y_train, eval_set=(x_valid, y_valid), early_stopping_rounds=200, verbose=1000)
-#     cv_val = model.predict_proba(x_valid)
-#     # Save LightGBM Model
-#     pickle.dump(model, open(os.path.join(lgb_path, 'lgb_fold_{}.pkl').format(fold), 'wb'))
-#     return cv_val
-#
-#     # lgb_params = {"objective": "multiclass", "metric": ['multi_logloss'], "max_depth": 8, "min_child_samples": 20,
-#     #               "reg_alpha": 1, "reg_lambda": 1, "num_leaves": 257, "learning_rate": 0.01, "subsample": 0.8,
-#     #               "colsample_bytree": 0.8, "verbosity": -1, 'is_unbalance': True, "num_threads": 32,
-#     #               'num_class': len(np.unique(y_train))}
-#     #
-#     # trn_data = lgb.Dataset(x_train, label=y_train)
-#     # val_data = lgb.Dataset(x_valid, label=y_valid)
-#     # num_round = 20000
-#     # model = lgb.train(lgb_params, trn_data, num_round, valid_sets=[val_data, trn_data], verbose_eval=1000,
-#     #                   early_stopping_rounds=100)
-#     # cv_val = model.predict(x_valid, model.best_iteration)
-#     # # Save LightGBM Model
-#     # pickle.dump(model, open(os.path.join(lgb_path, 'lgb_fold_{}_microsoft.pkl').format(fold), 'wb'))
-#     # return cv_val
-
-
-# def train():
-#     # LOGGER.info('-------------------LOAD TRAINING DATA ------------------')
-#     train_df = load_data(train_filename)
-#     new_label_df = load_new_label(new_label_filename)
-#
-#     # train_df['age_group'] = train_df.index.apply(lambda x: change_label(new_label_df, x))
-#     train_df['age_group'] = [change_label(new_label_df, x) for x in list(train_df.index)]
-#     train_df.dropna(inplace=True)
-#     #train_df = normalize_topic_distribution(train_df)
-#     LOGGER.info(train_df.shape)
-#
-#     Y = train_df['age_group']
-#     # Y = train_df['gender']
-#     X = train_df.drop(columns=['gender', 'age_group'])
-#
-#     nclass = len(np.unique(Y))
-#     LOGGER.info(X.shape, Y.shape, nclass)
-#     LOGGER.info('Counting target')
-#     LOGGER.info(Y.value_counts())
-#
-#     lgb_cv_result = np.zeros((X.shape[0], nclass))
-#     splits = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-#     for fold, (trn_idx, val_idx) in enumerate(splits.split(X, Y)):
-#         x_train, y_train = X.iloc[trn_idx], Y.iloc[trn_idx]
-#         x_valid, y_valid = X.iloc[val_idx], Y.iloc[val_idx]
-#         lgb_cv_result[val_idx] += train_lgb(fold, x_train, y_train, x_valid, y_valid, lgb_path=directory)
-#
-#     lgb_cv_result = np.argmax(lgb_cv_result, axis=1)
-#     LOGGER.info(Y.values)
-#     LOGGER.info(lgb_cv_result)
-#     LOGGER.info('\n *************** LightGBM VAL EVALUATION: *******************')
-#     LOGGER.info(classification_report(Y, lgb_cv_result))
 
 def get_optimal_binary_threshold(y, y_preds, metrics=f1_score):
     LOGGER.info("-------------Finding optimal threshold ------------------------")
