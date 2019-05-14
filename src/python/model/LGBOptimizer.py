@@ -70,7 +70,7 @@ class LGBOptimizer(object):
             model_extra_params=extra_params
         )
         LOGGER.info('------------------Optimizer Go--------------------')
-        optimizer.go()
+        optimizer.go(maxevals=20)
         # there are a few fixes on its way and the next few lines will soon be
         # one. At the moment, to access to the best parameters one has to read
         # from disc and access them
@@ -89,7 +89,8 @@ class LGBOptimizer(object):
                 best = json.loads(best.read())['hyperparameters']['model_init_params']
         except:
             print('----------------CANNOT FIND BEST PARAMETERS,  LOAD DEFAULT PARAMETERS ----------------------')
-            best = self.get_best_params()
+            LOGGER.info('----------------CANNOT FIND BEST PARAMETERS,  LOAD DEFAULT PARAMETERS ----------------------')
+            best = self.get_default_param()
         return best
 
     def fit_data(self, path_save_model, name):

@@ -16,7 +16,7 @@ import logging
 from datetime import datetime
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import classification_report, roc_auc_score, f1_score, precision_score, \
-    confusion_matrix, recall_score
+    confusion_matrix, recall_score, accuracy_score
 
 
 import sys
@@ -27,9 +27,9 @@ from LGBOptimizer import LGBOptimizer
 import warnings
 warnings.filterwarnings("ignore")
 
-metrics_dict = dict(f1_score=f1_score, precision=precision_score, recall=recall_score)
+metrics_dict = dict(f1_score=f1_score, precision=precision_score, recall=recall_score, accuracy=accuracy_score)
 OPTIMAL_THRESHOLD_FILENAME = 'Optimal_threshold.txt'
-N_JOBS = 24
+N_JOBS = 32
 
 
 def load_new_label(filename):

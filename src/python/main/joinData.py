@@ -25,8 +25,8 @@ def load_data(filename):
         return []
 
 
-def join_and_save(directory, output):
-    dfs = [load_data(filename) for filename in sorted(glob.glob(os.path.join(directory, "*.gz")))]
+def join_and_save(filenames, output):
+    dfs = [load_data(filename) for filename in filenames]
     try:
         df = pd.concat(dfs, axis=0)
         # df['category_id'] = df['category_id'].astype(np.int16)
@@ -48,4 +48,5 @@ if __name__ == '__main__':
     directory = args['directory']
     output = args['output']
 
-    join_and_save(directory, output)
+    filenames = sorted(glob.glob(os.path.join(directory, "*.gz")))
+    join_and_save(filenames, output)

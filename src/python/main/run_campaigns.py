@@ -25,7 +25,7 @@ from newLabelDefinition import process_new_target
 # CURRENT_DATE = datetime.today().date() - timedelta(days=2)
 
 
-def process(config):
+def process(config, filepath):
     command = "{}/scripts/customTargeting.sh".format(WORKING_DIRECTORY)
 
     print('--------------Create new label----------')
@@ -36,11 +36,12 @@ def process(config):
                      CAMPAIGN_DIRECTORY, config['cateID'], HYPER_PARAMS_DIRECTORY, NEW_LABEL_FILE,
                      config['metric'], config['cateID2']])
 
-    file_output = os.path.join(CAMPAIGN_DIRECTORY, "prediction", "{}.gz".format(CURRENT_DATE.strftime("%Y-%m-%d")))
-    if os.path.isfile(file_output):  # copy file to temporary folder to join
-        shutil.copy(file_output, os.path.join(TEMPORARY_CUSTOM_TARGET_DIR, "{}.gz".format(config['name'])))
+    file_result = os.path.join(CAMPAIGN_DIRECTORY, "prediction", "{}.gz".format(CURRENT_DATE.strftime("%Y-%m-%d")))
+    if os.path.isfile(file_result):  # copy file to temporary folder to join
+        shutil.copy(file_result, filepath)
     else:
-        print('------ File : {} -------- NOT FOUND'.format(file_output))
+        print('------ File : {} -------- NOT FOUND'.format(file_result))
+        raise FileNotFoundError
 
 
 if __name__ == '__main__':
@@ -71,10 +72,12 @@ if __name__ == '__main__':
     make_directories(TEMPORARY_CUSTOM_TARGET_DIR)
     make_directories(FINAL_CUSTOM_TARGET_DIR)
 
+    active_campaigns = []
     for jsonfile in list_jsons:
         config = json.load(open(jsonfile, 'r'))
         date_campaign = datetime.strptime(config['end_date'], "%Y-%m-%d").date()
         if CURRENT_DATE <= date_campaign:
+            filepath = os.path.join(TEMPORARY_CUSTOM_TARGET_DIR, "{}.gz".format(config['name']))
             if config['is_runnable']:  # if this campaign needs train/predict procedure
                 print("--------- Run campaign with json file : {}".format(jsonfile))
                 CAMPAIGN_DIRECTORY = os.path.join(DATA_CAMPAIGNS_OUT_DIRECTORY, config['name'])
@@ -82,18 +85,19 @@ if __name__ == '__main__':
                 HYPER_PARAMS_DIRECTORY = CAMPAIGN_DIRECTORY
                 NEW_LABEL_FILE = os.path.join(CAMPAIGN_DIRECTORY, "label.gz")
                 try:
-                    process(config)
+                    process(config, filepath)
                 except Exception as err:
                     raise err
+            active_campaigns.append(filepath)
         else:
             print("--------- Campaign: {} finished at {} -------------".format(config['name'], config['end_date']))
-            filepath = os.path.join(TEMPORARY_CUSTOM_TARGET_DIR, "{}.gz".format(config['name']))
-            if os.path.isfile(filepath):  # remove file if file is out-of-date
-                os.remove(filepath)
-                print(" ***** Remove file '{}' from temporary folder '{}'".format(config['name'],
-                                                                                  TEMPORARY_CUSTOM_TARGET_DIR))
+            # filepath = os.path.join(TEMPORARY_CUSTOM_TARGET_DIR, "{}.gz".format(config['name']))
+            # if os.path.isfile(filepath):  # remove file if file is out-of-date
+            #     os.remove(filepath)
+            #     print(" ***** Remove file '{}' from temporary folder '{}'".format(config['name'],
+            #                                                                       TEMPORARY_CUSTOM_TARGET_DIR))
 
     # join data
     # subprocess.call(["python", "src/python/main/joinData.py", f"-d{TEMPORARY_CUSTOM_TARGET_DIR}",
     #                  f"-o{os.path.join(FINAL_CUSTOM_TARGET_DIR, CUSTOM_TARGET_NAME)}"])
-    join_and_save(TEMPORARY_CUSTOM_TARGET_DIR, os.path.join(FINAL_CUSTOM_TARGET_DIR, CUSTOM_TARGET_NAME))
+    join_and_save(active_campaigns, os.path.join(FINAL_CUSTOM_TARGET_DIR, CUSTOM_TARGET_NAME))
