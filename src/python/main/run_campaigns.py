@@ -17,12 +17,29 @@ import shutil
 import sys
 
 sys.path.append("src/python/utils")
+sys.path.append("src/python/db")
 
 from utils import make_directories
+from mongodb import Mongodb
 from joinData import join_and_save
 from newLabelDefinition import process_new_target
 
+
 # CURRENT_DATE = datetime.today().date() - timedelta(days=2)
+DB_NAME = "customTargeting"
+COLLECTION_NAME = "campaigns"
+
+
+def get_status(config):
+    status = dict(Name=config["name"],
+                  Type="Model" if config["is_runnable"] else "Direct",
+                  Status=None,
+                  StartDate=config["start_date"],
+                  EndDate=config["end_date"],
+                  LastUpdated=None,
+                  Active=None
+                  )
+    return status
 
 
 def process(config, filepath):
@@ -73,10 +90,14 @@ if __name__ == '__main__':
     make_directories(FINAL_CUSTOM_TARGET_DIR)
 
     active_campaigns = []
+    status_campagins = []
     for jsonfile in list_jsons:
         config = json.load(open(jsonfile, 'r'))
         date_campaign = datetime.strptime(config['end_date'], "%Y-%m-%d").date()
+        status_camp = get_status(config)
+
         if CURRENT_DATE <= date_campaign:
+            status_camp["Active"] = 1
             filepath = os.path.join(TEMPORARY_CUSTOM_TARGET_DIR, "{}.gz".format(config['name']))
             if config['is_runnable']:  # if this campaign needs train/predict procedure
                 print("--------- Run campaign with json file : {}".format(jsonfile))
@@ -86,18 +107,23 @@ if __name__ == '__main__':
                 NEW_LABEL_FILE = os.path.join(CAMPAIGN_DIRECTORY, "label.gz")
                 try:
                     process(config, filepath)
-                except Exception as err:
-                    raise err
+                    status_camp["Status"] = 1
+                    status_camp["LastUpdated"] = CURRENT_DATE.strftime("%Y-%m-%d")
+                except:  # Exception as err:
+                    status_camp["Status"] = 0
+                    # raise err
+
             active_campaigns.append(filepath)
         else:
             print("--------- Campaign: {} finished at {} -------------".format(config['name'], config['end_date']))
-            # filepath = os.path.join(TEMPORARY_CUSTOM_TARGET_DIR, "{}.gz".format(config['name']))
-            # if os.path.isfile(filepath):  # remove file if file is out-of-date
-            #     os.remove(filepath)
-            #     print(" ***** Remove file '{}' from temporary folder '{}'".format(config['name'],
-            #                                                                       TEMPORARY_CUSTOM_TARGET_DIR))
+            status_camp["Active"] = 0
+        status_campagins.append(status_camp)
 
     # join data
     # subprocess.call(["python", "src/python/main/joinData.py", f"-d{TEMPORARY_CUSTOM_TARGET_DIR}",
     #                  f"-o{os.path.join(FINAL_CUSTOM_TARGET_DIR, CUSTOM_TARGET_NAME)}"])
     join_and_save(active_campaigns, os.path.join(FINAL_CUSTOM_TARGET_DIR, CUSTOM_TARGET_NAME))
+
+    # upload status to Mongodb
+    mongodb = Mongodb(dbname=DB_NAME)
+    mongodb.insert_data(collection_name=COLLECTION_NAME, data=status_campagins)
