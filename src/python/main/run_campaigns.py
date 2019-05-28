@@ -22,11 +22,14 @@ sys.path.append("src/python/db")
 from utils import make_directories
 from mongodb import Mongodb
 from joinData import join_and_save
-from newLabelDefinition import process_new_target
+from newLabelDefinition import process_new_target_with_conditions
 
 
-# CURRENT_DATE = datetime.today().date() - timedelta(days=2)
-DB_NAME = "customTargeting"
+HOST = "localhost"
+PORT = 27017
+DB_NAME = "adstarget"
+DB_USERNAME = "adstarget-dev"
+DB_PASSWORD = "M8bmU7CB9G3ItBxOOzck"
 COLLECTION_NAME = "campaigns"
 
 
@@ -34,10 +37,11 @@ def get_status(config):
     status = dict(Name=config["name"],
                   Type="Model" if config["is_runnable"] else "Direct",
                   Status=None,
-                  StartDate=config["start_date"],
-                  EndDate=config["end_date"],
+                  StartDate=datetime.strptime(config["start_date"], "%Y-%m-%d"),
+                  EndDate=datetime.strptime(config["end_date"], "%Y-%m-%d"),
                   LastUpdated=None,
-                  Active=None
+                  Active=None,
+                  Config=config
                   )
     return status
 
@@ -46,7 +50,7 @@ def process(config, filepath):
     command = "{}/scripts/customTargeting.sh".format(WORKING_DIRECTORY)
 
     print('--------------Create new label----------')
-    process_new_target(int(config['low']), int(config['high']), NEW_LABEL_FILE)
+    process_new_target_with_conditions(config['age_range'], NEW_LABEL_FILE)
 
     print("------------- Main program-------------")
     subprocess.call([command, CURRENT_DATE.strftime("%Y-%m-%d"), WORKING_DIRECTORY, FEATURE_DIRECTORY,
@@ -71,7 +75,7 @@ if __name__ == '__main__':
 
     args = vars(ap.parse_args())
 
-    CURRENT_DATE = datetime.strptime(args['date'], "%Y-%m-%d").date()
+    CURRENT_DATE = datetime.strptime(args['date'], "%Y-%m-%d")
     WORKING_DIRECTORY = args['workspace']  # "/home/phongdk/workspace/customTargeting"
     FEATURE_DIRECTORY = args['feature']  # '/home/tuannm/target/demography/data'
     OUTPUT_DIRECTORY = args['output']  # "/home/phongdk/data_custom_targeting/"
@@ -96,8 +100,9 @@ if __name__ == '__main__':
         date_campaign = datetime.strptime(config['end_date'], "%Y-%m-%d").date()
         status_camp = get_status(config)
 
-        if CURRENT_DATE <= date_campaign:
+        if CURRENT_DATE.date() <= date_campaign:
             status_camp["Active"] = 1
+            status_camp["LastUpdated"] = CURRENT_DATE
             filepath = os.path.join(TEMPORARY_CUSTOM_TARGET_DIR, "{}.gz".format(config['name']))
             if config['is_runnable']:  # if this campaign needs train/predict procedure
                 print("--------- Run campaign with json file : {}".format(jsonfile))
@@ -108,7 +113,6 @@ if __name__ == '__main__':
                 try:
                     process(config, filepath)
                     status_camp["Status"] = 1
-                    status_camp["LastUpdated"] = CURRENT_DATE.strftime("%Y-%m-%d")
                 except:  # Exception as err:
                     status_camp["Status"] = 0
                     # raise err
@@ -122,8 +126,9 @@ if __name__ == '__main__':
     # join data
     # subprocess.call(["python", "src/python/main/joinData.py", f"-d{TEMPORARY_CUSTOM_TARGET_DIR}",
     #                  f"-o{os.path.join(FINAL_CUSTOM_TARGET_DIR, CUSTOM_TARGET_NAME)}"])
+    print("Number of active campaigns --------  {}".format(len(active_campaigns)))
     join_and_save(active_campaigns, os.path.join(FINAL_CUSTOM_TARGET_DIR, CUSTOM_TARGET_NAME))
 
     # upload status to Mongodb
-    mongodb = Mongodb(dbname=DB_NAME)
+    mongodb = Mongodb(host=HOST, port=PORT, user_name=DB_USERNAME, password=DB_PASSWORD, dbname=DB_NAME)
     mongodb.insert_data(collection_name=COLLECTION_NAME, data=status_campagins)

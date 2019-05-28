@@ -33,8 +33,7 @@ def collect_user_hash_id(filename, from_date, end_date, filter_uid):
     output = []
     query = "SELECT " \
             "distinct(user_id), "\
-            "cityHash64(user_id) as u, "\
-            "bitAnd(u, (bitShiftLeft(toInt64(1), toInt64(63)) - 1)) - bitAnd(u, (bitShiftLeft(toInt64(1), toInt64(63)))) as hash_id "\
+            "toInt64(cityHash64(user_id)) as u, "\
             "FROM " \
             "browser.clickdata " \
             "WHERE " \

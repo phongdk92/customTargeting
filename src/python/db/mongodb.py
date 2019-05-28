@@ -7,14 +7,15 @@ Created on May 16 10:43 2019
 """
 
 from pymongo import MongoClient
+from datetime import datetime
 
 
 class Mongodb(object):
-    def __init__(self, host="10.0.11.55", port=27017, dbname="testdb"):
+    def __init__(self, host, port, user_name, password,  dbname="testdb"):
         self.host = host
         self.port = port
         self.dbname = dbname
-        self.client = MongoClient("mongodb://{}:{}/".format(host, port))
+        self.client = MongoClient("mongodb://{}:{}@{}:{}/{}".format(user_name, password, host, port, dbname))
 
     def insert_data(self, collection_name, data):
         print("---------------------Insert data to {}.{}------------------------".format(self.dbname, collection_name))
@@ -27,17 +28,32 @@ class Mongodb(object):
         print("-----------------Drop collection {} from db {}-------------------".format(collection_name, self.dbname))
         self.client[self.dbname][collection_name].drop()
 
+    def list_data(self, collection_name):
+        mycollection = self.client[self.dbname][collection_name]
+        for x in mycollection.find():
+            print(x)
+
 
 if __name__ == '__main__':
-    mongodb = Mongodb(dbname="testdb")
+    HOST = "localhost"
+    PORT = 27017
+    DB_NAME = "adstarget"
+    DB_USERNAME = "adstarget-dev"
+    DB_PASSWORD = "M8bmU7CB9G3ItBxOOzck"
+    COLLECTION_NAME = "campaigns"
 
-    my_dict = dict(Name="topica",
+    mongodb = Mongodb(host=HOST, port=PORT, user_name=DB_USERNAME, password=DB_PASSWORD, dbname=DB_NAME)
+
+    my_dict = dict(Name="test",
                    Type="Model",
                    Status="1",
-                   StartDate="2019-04-05",
+                   StartDate=datetime.strptime("2019-04-05", "%Y-%m-%d"),
                    EndDate='2019-05-08',
                    LastUpdated='2019-05-06',
                    Active="1"
                    )
-    mongodb.insert_data(collection_name="information", data=my_dict)
-    mongodb.drop_collection(collection_name="information")
+    print(my_dict)
+    # mongodb.insert_data(collection_name=COLLECTION_NAME, data=my_dict)
+    mongodb.drop_collection(collection_name=COLLECTION_NAME)
+    # mongodb.list_data(collection_name="campaigns")
+    # print(mongodb.client[DB_NAME].list_collection_names())
