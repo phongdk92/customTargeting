@@ -56,10 +56,12 @@ def load_data(filename, nrows=None):
     return df
 
 
-def load_data_from_hdfs(filenames, persist=True):
-    df = dd.read_parquet(filenames, storage_options=storage_options) if filenames.endswith('parquet') else \
-        dd.read_csv(filenames, compression='gzip', dtype={'user_id': str},
-                    storage_options=storage_options).set_index('user_id')
+def load_data_from_hdfs(filename, persist=True):
+    df = dd.read_parquet(filename, storage_options=storage_options) \
+        if filename.endswith('parquet') or filename.endswith('parq') \
+        else dd.read_csv(filename, compression='gzip', dtype={'user_id': str},
+                         storage_options=storage_options).set_index('user_id')
+
     if 'gender' in df.columns:
         df['gender'] = df['gender'].astype('int8')
     if 'age_group' in df.columns:
@@ -196,7 +198,7 @@ if __name__ == '__main__':
                     const=True, type=bool, default=False)
     ap.add_argument("-me", "--metric", required=False, help="metric to optimize threshold", type=str,
                     default="f1_score")
-    ap.add_argument("-hdfs", "--hdfs", required=False, nargs='?', help="metric to optimize threshold", type=bool,
+    ap.add_argument("-hdfs", "--hdfs", required=False, nargs='?', help="Load/Save data to HDFS", type=bool,
                     const=True, default=False)
 
     ap.add_argument("-l", "--log_file", required=False, help="path to log file")

@@ -24,7 +24,7 @@ sys.path.append('src/python/db')
 sys.path.append('src/python/hdfs_config')
 # from utils import normalize_topic_distribution
 from redisConnection import connectRedis, get_browser_id
-from hdfs_config import storage_options, hdfs
+from hdfs_config import storage_options, hdfs, HDFS_PREFIX
 from distributed import Client
 import dask.dataframe as dd
 import dask
@@ -61,26 +61,36 @@ def load_models(path):
     return models, newest_model
 
 
+def get_predicted_values(df, models):
+    result = [model.predict_proba(df, num_threads=NUM_THREADS) for model in models[0:1]]
+    result = np.array(result).mean(axis=0)
+    return result
+
+
 def prediction_stage(filename, path, target_label=1):
     LOGGER.info('-------------------- Load Test Data. ----------------------------')
     models, newest_model = load_models(path)
+    lgb_result = []
+    list_userid = []
+    print('Number of models : {}'.format(len(models)))
+    assert len(models) > 0
     if is_hdfs:
-        #df = dd.read_parquet(filename, storage_options=storage_options)
-        df = dd.read_parquet(filename, storage_options=storage_options) if filename.endswith('parquet') else \
-            dd.read_csv(filename, compression='gzip', dtype={'user_id': str},
-                        storage_options=storage_options).set_index('user_id')
+        demographic_filenames = sorted(hdfs.glob(os.path.join(filename)))
+        LOGGER.info("Number files to predicts : {}".format(len(demographic_filenames)))
+        for (i, demo_filename) in enumerate(demographic_filenames):
+            df = dd.read_csv(HDFS_PREFIX + demo_filename, dtype={'user_id': str}, compression='gzip', blocksize=None,
+                             storage_options=storage_options).set_index("user_id").compute()
+            list_userid.extend(list(df.index))
+            print('Number of samples : -------------------- ', len(list_userid))
+            LOGGER.info(demo_filename)
+            LOGGER.info("Number of samples : {}".format(len(list_userid)))
 
-        LOGGER.info(df.head())
-        list_userid = df.index.compute()
-        LOGGER.info("number of samples : {}".format(len(list_userid)))
-        if "gender" in df.columns:
-            df = df.drop(['gender', 'age_group'], axis=1)
+            if "gender" in df.columns:
+                df = df.drop(['gender', 'age_group'], axis=1)
 
-        lgb_result = [model.predict_proba(df, num_threads=NUM_THREADS) for model in models[0:1]]
-        lgb_result = np.array(lgb_result).mean(axis=0)
+            file_result = get_predicted_values(df, models)
+            lgb_result.extend(file_result)
     else:   # prediction for each chunk
-        lgb_result = []
-        list_userid = []
         for chunk in tqdm(pd.read_csv(filename, compression='gzip', chunksize=chunk_size, index_col='user_id',
                                       dtype={'user_id': str})):
             LOGGER.info(chunk.shape)
@@ -93,7 +103,7 @@ def prediction_stage(filename, path, target_label=1):
 
             lgb_result.extend(chunk_result)
 
-        lgb_result = np.array(lgb_result, dtype=np.float16)
+    lgb_result = np.array(lgb_result, dtype=np.float16)
 
     if lgb_result.shape[1] == 2:  # binary classification
         optimal_threshold = pickle.load(OPEN_METHOD(os.path.join(directory, newest_model,
@@ -178,8 +188,11 @@ if __name__ == '__main__':
     print(client)
 
     if is_hdfs:
-        if not hdfs.isdir('target/demographic/prediction'):  # make directory on HDFS
-            hdfs.makedirs('target/demographic/prediction')
+        if not hdfs.isdir(os.path.dirname(output_filename)):  # make directory on HDFS
+            hdfs.makedirs(os.path.dirname(output_filename))
+    else:
+        if not os.path.isdir(os.path.dirname(output_filename)):
+            os.makedirs(os.path.dirname(output_filename))
 
     OPEN_METHOD = hdfs.open if is_hdfs else open  # define open file method
 

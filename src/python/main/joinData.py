@@ -15,14 +15,14 @@ import os
 
 def load_data(filename):
     print(filename)
+    df = pd.DataFrame()
     try:
         df = pd.read_csv(filename, sep=' ', header=None, names=['browser_id', 'category_id'],
                          dtype={'browser_id': str, 'category_id': str})
         print(df.shape)
-        return df
     except:
         print('--------Load data fail ----- {}'.format(filename))
-        return []
+    return df
 
 
 def join_and_save(filenames, output):

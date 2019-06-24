@@ -12,20 +12,21 @@ import os
 CAMPAIGNS_DIR = "/home/phongdk/data_custom_targeting/campaigns"
 
 if __name__ == '__main__':
-    # config = dict(name='topica#554027',
-    #               start_date='2019-04-10',
-    #               end_date='2019-05-27',
-    #               is_runnable=True,
-    #               cateID='15517',
-    #               metric='precision',
-    #               cateID2='0',
-    #               )
-
-    config = dict(name='samsung#595930',
-                  start_date='2019-05-08',
-                  end_date='2019-05-10',
-                  is_runnable=False,
+    config = dict(name='test#1234',
+                  start_date='2019-04-10',
+                  end_date='2019-04-27',
+                  is_runnable=True,
+                  cateID='000000',
+                  metric='precision',
+                  cateID2='0',
+                  age_range=["30-44"]
                   )
+
+    # config = dict(name='samsung#595930',
+    #               start_date='2019-05-08',
+    #               end_date='2019-05-10',
+    #               is_runnable=False,
+    #               )
 
     outJson = os.path.join(CAMPAIGNS_DIR, "{}.json".format(config['name']))
     with open(outJson, 'w') as fp:

@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Created on May 13 12:20 2019
+
+@author: phongdk
+"""
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
 Created on May 03 17:34 2019
 
 @author: phongdk
@@ -36,7 +44,7 @@ COLLECTION_NAME = "campaigns"
 def get_status(config):
     status = dict(Name=config["name"],
                   Type="Model" if config["is_runnable"] else "Direct",
-                  Status=1,
+                  Status=None,
                   StartDate=datetime.strptime(config["start_date"], "%Y-%m-%d"),
                   EndDate=datetime.strptime(config["end_date"], "%Y-%m-%d"),
                   LastUpdated=None,
@@ -113,7 +121,8 @@ if __name__ == '__main__':
                 HYPER_PARAMS_DIRECTORY = CAMPAIGN_DIRECTORY
                 NEW_LABEL_FILE = os.path.join(CAMPAIGN_DIRECTORY, "label.gz")
                 try:
-                    process(config, filepath)
+                    # process(config, filepath)
+                    status_camp["Status"] = 1
                 except:  # Exception as err:
                     status_camp["Status"] = 0
                     # raise err
@@ -131,5 +140,5 @@ if __name__ == '__main__':
     join_and_save(active_campaigns, os.path.join(FINAL_CUSTOM_TARGET_DIR, CUSTOM_TARGET_NAME))
 
     # upload status to Mongodb
-    mongodb = Mongodb(host=HOST, port=PORT, user_name=DB_USERNAME, password=DB_PASSWORD, dbname=DB_NAME)
-    mongodb.insert_data(collection_name=COLLECTION_NAME, data=status_campagins)
+    # mongodb = Mongodb(host=HOST, port=PORT, user_name=DB_USERNAME, password=DB_PASSWORD, dbname=DB_NAME)
+    # mongodb.insert_data(collection_name=COLLECTION_NAME, data=status_campagins)
