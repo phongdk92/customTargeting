@@ -105,7 +105,10 @@ if __name__ == '__main__':
     status_campagins = []
     for jsonfile in list_jsons:
         config = json.load(open(jsonfile, 'r'))
-        config['name'] = os.path.splitext(config['name'])[0]
+        filepath = os.path.join(TEMPORARY_CUSTOM_TARGET_DIR, "{}.gz".format(config['name']))
+        if not os.path.exists(filepath):
+            config['name'] = os.path.splitext(config['name'])[0]
+            filepath = os.path.join(TEMPORARY_CUSTOM_TARGET_DIR, "{}.gz".format(config['name']))
 
         date_campaign = datetime.strptime(config['end_date'], "%Y-%m-%d").date()
         status_camp = get_status(config)
@@ -113,7 +116,6 @@ if __name__ == '__main__':
         if CURRENT_DATE.date() <= date_campaign:
             status_camp["Active"] = 1
             status_camp["LastUpdated"] = CURRENT_DATE
-            filepath = os.path.join(TEMPORARY_CUSTOM_TARGET_DIR, "{}.gz".format(config['name']))
             if config['is_runnable']:  # if this campaign needs train/predict procedure
                 print("--------- Run campaign with json file : {}".format(jsonfile))
                 CAMPAIGN_DIRECTORY = os.path.join(DATA_CAMPAIGNS_OUT_DIRECTORY, config['name'])
