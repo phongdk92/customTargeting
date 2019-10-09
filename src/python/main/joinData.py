@@ -15,13 +15,14 @@ import os
 
 def load_data(filename):
     print(filename)
-    df = pd.DataFrame()
     try:
         df = pd.read_csv(filename, sep=' ', header=None, names=['browser_id', 'category_id'],
                          dtype={'browser_id': str, 'category_id': int})
         df = df.dropna()  # if cannot separate by sep=' ', drop it
-        assert df.shape[1] == 2, "Incorrect format"
+        assert df.shape[1] == 2, "-------------- Incorrect format ---------------"
+        assert df.shape[0] > 0, "----------- Empty file ------------"
     except:
+        df = pd.DataFrame()
         print('--------Load data fail ----- {}'.format(filename))
     return df
 
